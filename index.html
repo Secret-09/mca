@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Parallel Traffic Simulation</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;800&display=swap');
+
+:root {
+  --bg: #07090f;
+  --panel: #0c1018;
+  --card: #0f1520;
+  --border: #1a2540;
+  --accent: #00e5ff;
+  --green: #00ff88;
+  --red: #ff2244;
+  --yellow: #ffd700;
+  --orange: #ff8c00;
+  --purple: #9f7aea;
+  --text: #c0d0e8;
+  --dim: #3a5070;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Exo 2', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+header h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.pill {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid;
+  letter-spacing: 1px;
+}
+
+.pill-blue { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.07); }
+.pill-green { border-color: var(--green); color: var(--green); background: rgba(0,255,136,0.07); }
+.pill-orange { border-color: var(--orange); color: var(--orange); background: rgba(255,140,0,0.07); }
+
+.tab-bar {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 5px 16px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,229,255,0.08);
+}
+
+.tab:hover:not(.active) { color: var(--text); border-color: var(--dim); }
+
+/* ── PAGES ───────────────────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── LIVE SIM PAGE ───────────────────────────────────────────── */
+#page-live {
+  display: none;
+  grid-template-columns: 200px 1fr 200px;
+  grid-template-rows: auto 1fr;
+  height: calc(100vh - 49px);
+  gap: 0;
+}
+
+#page-live.active { display: grid; }
+
+.side-panel {
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.side-panel.right { border-right: none; border-left: 1px solid var(--border); }
+
+.sec-title {
+  font-size: 0.62rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.ctrl-btn {
+  width: 100%;
+  padding: 8px;
+  border-radius: 3px;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.btn-start {
+  background: var(--green);
+  border-color: var(--green);
+  color: #000;
+}
+.btn-stop {
+  background: transparent;
+  border-color: var(--red);
+  color: var(--red);
+}
+.btn-reset {
+  background: transparent;
+  border-color: var(--dim);
+  color: var(--dim);
+}
+.btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+.mode-sel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.msel-btn {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+  text-align: left;
+  letter-spacing: 0.5px;
+}
+
+.msel-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(0,229,255,0.07);
+}
+
+/* Road stats */
+.road-card {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px;
+  transition: border-color 0.3s;
+}
+
+.road-card.go { border-color: rgba(0,255,136,0.5); }
+
+.rc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.rc-name { font-size: 0.7rem; font-weight: 700; letter-spacing: 1px; }
+.sig-badge {
+  font-family: var(--mono);
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+.sig-green { background: rgba(0,255,136,0.15); color: var(--green); }
+.sig-red { background: rgba(255,34,68,0.15); color: var(--red); }
+.sig-yellow { background: rgba(255,215,0,0.15); color: var(--yellow); }
+
+.bar-wrap { height: 5px; background: rgba(0,0,0,0.4); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+
+.rc-info {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  color: var(--dim);
+  margin-top: 3px;
+}
+
+/* Stat cards */
+.stat-card {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px;
+}
+
+.sc-label { font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+.sc-val { font-family: var(--mono); font-size: 1.4rem; color: var(--accent); margin: 2px 0; }
+.sc-sub { font-size: 0.65rem; color: var(--dim); }
+
+/* Canvas */
+.canvas-container {
+  position: relative;
+  overflow: hidden;
+  background: #060810;
+}
+
+#simCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.overlay-info {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--dim);
+  pointer-events: none;
+}
+
+.overlay-time {
+  font-size: 1.6rem;
+  color: var(--accent);
+  letter-spacing: 4px;
+  line-height: 1;
+}
+
+.signal-info {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.sig-pill {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+
+/* ── BENCHMARK PAGE ──────────────────────────────────────────── */
+#page-bench {
+  padding: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+#page-bench h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.bench-desc {
+  color: var(--dim);
+  font-size: 0.82rem;
+  margin-bottom: 20px;
+}
+
+.bench-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.bench-field { display: flex; flex-direction: column; gap: 5px; }
+.bench-field label { font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+.bench-field select, .bench-field input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  padding: 7px 12px;
+  border-radius: 3px;
+  outline: none;
+}
+.bench-field select:focus, .bench-field input:focus { border-color: var(--accent); }
+
+.bench-run {
+  padding: 8px 28px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  font-family: var(--sans);
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.bench-run:hover { background: #fff; }
+.bench-run:disabled { background: var(--dim); cursor: not-allowed; color: #666; }
+
+.bench-run.loading {
+  background: transparent;
+  border: 1px solid var(--yellow);
+  color: var(--yellow);
+  animation: pulse-loading 1s infinite;
+}
+
+@keyframes pulse-loading {
+  0%,100% { opacity:1; }
+  50% { opacity: 0.5; }
+}
+
+/* Results grid */
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.result-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.result-card.highlight { border-color: var(--green); }
+.result-card.seq-card { border-color: var(--orange); }
+
+.rc-title {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rc-title span { font-size: 0.85rem; color: var(--text); font-weight: 700; }
+
+.big-metric {
+  font-family: var(--mono);
+  font-size: 2.2rem;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.big-metric.orange { color: var(--orange); }
+.big-metric.green { color: var(--green); }
+.big-metric.purple { color: var(--purple); }
+.big-metric.accent { color: var(--accent); }
+
+.metric-label {
+  font-size: 0.7rem;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+
+.sub-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sm-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px;
+}
+
+.sm-val { font-family: var(--mono); font-size: 1rem; color: var(--text); }
+.sm-lab { font-size: 0.6rem; color: var(--dim); letter-spacing: 1px; margin-top: 2px; }
+
+/* Speedup chart */
+.chart-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-title {
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 16px;
+}
+
+.speedup-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.sb-row { display: flex; align-items: center; gap: 12px; }
+.sb-label { font-family: var(--mono); font-size: 0.7rem; color: var(--dim); width: 80px; flex-shrink: 0; }
+.sb-track { flex: 1; height: 24px; background: rgba(0,0,0,0.3); border-radius: 3px; overflow: hidden; position: relative; }
+.sb-fill { height: 100%; border-radius: 3px; transition: width 1s ease; display: flex; align-items: center; padding-left: 8px; }
+.sb-fill-seq { background: linear-gradient(90deg, rgba(255,140,0,0.8), rgba(255,140,0,0.4)); }
+.sb-fill-1t { background: linear-gradient(90deg, rgba(0,229,255,0.5), rgba(0,229,255,0.2)); }
+.sb-fill-2t { background: linear-gradient(90deg, rgba(0,229,255,0.65), rgba(0,229,255,0.35)); }
+.sb-fill-4t { background: linear-gradient(90deg, rgba(0,255,136,0.75), rgba(0,255,136,0.4)); }
+.sb-fill-8t { background: linear-gradient(90deg, rgba(159,122,234,0.85), rgba(159,122,234,0.5)); }
+.sb-val { font-family: var(--mono); font-size: 0.7rem; color: var(--text); width: 90px; flex-shrink: 0; }
+
+/* Thread comparison table */
+.comp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.comp-table th {
+  font-size: 0.62rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.comp-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(26,37,64,0.5);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.comp-table tr:hover td { background: rgba(0,229,255,0.03); }
+
+.badge-speedup {
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.bs-good { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.3); }
+.bs-ok { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
+.bs-base { background: rgba(255,140,0,0.12); color: var(--orange); border: 1px solid rgba(255,140,0,0.3); }
+
+/* ── ABOUT PAGE ──────────────────────────────────────────────── */
+#page-about {
+  padding: 28px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+#page-about h2 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.about-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.about-section h3 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.about-section p {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.about-section ul { list-style: none; }
+.about-section ul li {
+  font-size: 0.82rem;
+  color: var(--text);
+  padding: 3px 0;
+  padding-left: 16px;
+  position: relative;
+}
+.about-section ul li::before {
+  content: '→';
+  color: var(--accent);
+  position: absolute;
+  left: 0;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: rgba(0,229,255,0.08);
+  color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 2px;
+}
+
+/* ── STATUS BAR ──────────────────────────────────────────────── */
+.statusbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 5px 16px;
+  display: flex;
+  gap: 20px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  color: var(--dim);
+  z-index: 100;
+}
+.statusbar span { color: var(--accent); }
+
+/* ── LOADING OVERLAY ─────────────────────────────────────────── */
+#benchLoading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+#benchLoading.visible { display: flex; }
+
+.loading-box {
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 28px 40px;
+  text-align: center;
+}
+
+.loading-box h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.loading-box p { font-size: 0.8rem; color: var(--dim); margin-bottom: 16px; }
+
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.progress-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; text-align: left; }
+.step-item {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-item.done { color: var(--green); }
+.step-item.running { color: var(--yellow); }
+.step-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Parallel Traffic Sim</h1>
+  <div class="pill pill-blue">MULTITHREADED</div>
+  <div class="pill pill-green">ADAPTIVE SIGNALS</div>
+  <div class="pill pill-orange">PYTHON BACKEND</div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="showPage('live')">🚦 Live Simulation</button>
+    <button class="tab" onclick="showPage('bench')">⚡ Benchmark</button>
+    <button class="tab" onclick="showPage('about')">📋 About</button>
+  </div>
+</header>
+
+<!-- ══════════ LIVE SIMULATION PAGE ══════════ -->
+<div class="page active" id="page-live">
+  <!-- Left Panel -->
+  <div class="side-panel">
+    <div>
+      <div class="sec-title">Controls</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+        <button class="ctrl-btn btn-start" id="btnStart" onclick="startSim()">▶ Start</button>
+        <button class="ctrl-btn btn-stop" id="btnStop" onclick="stopSim()" style="display:none">■ Stop</button>
+        <button class="ctrl-btn btn-reset" onclick="resetSim()">↺ Reset</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Signal Mode</div>
+      <div class="mode-sel" style="margin-top:6px;">
+        <button class="msel-btn active" id="modeStatic" onclick="setLiveMode('static')">
+          📍 Static Timing<br><span style="font-size:0.62rem;color:var(--dim)">Fixed green always</span>
+        </button>
+        <button class="msel-btn" id="modeAdaptive" onclick="setLiveMode('adaptive')">
+          ⚡ Adaptive<br><span style="font-size:0.62rem;color:var(--dim)">Proportional + fair</span>
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="sec-title">Road Traffic</div>
+      <div id="roadCards" style="display:flex;flex-direction:column;gap:5px;margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <div class="canvas-container">
+    <canvas id="simCanvas"></canvas>
+    <div class="overlay-info">
+      <div class="overlay-time" id="overlayTime">00:00</div>
+      <div>SIM TIME</div>
+    </div>
+    <div class="signal-info" id="signalInfo"></div>
+  </div>
+
+  <!-- Right Panel -->
+  <div class="side-panel right">
+    <div class="sec-title">Live Metrics</div>
+    <div class="stat-card">
+      <div class="sc-label">Passed Through</div>
+      <div class="sc-val" id="metPassed">0</div>
+      <div class="sc-sub">vehicles cleared</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Avg Wait Time</div>
+      <div class="sc-val" id="metWait">0s</div>
+      <div class="sc-sub">per vehicle</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Currently Queued</div>
+      <div class="sc-val" id="metQueued">0</div>
+      <div class="sc-sub">waiting at red</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Active Vehicles</div>
+      <div class="sc-val" id="metActive">0</div>
+      <div class="sc-sub">on roads</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-label">Wasted Green</div>
+      <div class="sc-val" id="metWasted" style="color:var(--orange)">0s</div>
+      <div class="sc-sub">empty road green time</div>
+    </div>
+
+    <div style="margin-top:auto;">
+      <div class="sec-title">Signal Timer</div>
+      <canvas id="timerCanvas" width="176" height="60" style="width:100%;margin-top:6px;"></canvas>
+    </div>
+
+    <div>
+      <div class="sec-title">Legend</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:0.68rem;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#00d4ff;flex-shrink:0"></div>North / South</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff8c00;flex-shrink:0"></div>East / West</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#ff2244;flex-shrink:0"></div>Waiting (red)</div>
+        <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#00ff88;flex-shrink:0"></div>Moving (green)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ BENCHMARK PAGE ══════════ -->
+<div class="page" id="page-bench">
+  <h2>Performance Benchmark</h2>
+  <p class="bench-desc">Compare sequential vs parallel (multithreaded) vehicle state computation. Run controlled benchmark to see speedup with increasing thread counts.</p>
+
+  <div class="bench-controls">
+    <div class="bench-field">
+      <label>Number of Vehicles</label>
+      <select id="benchVehicles">
+        <option value="100">100 vehicles</option>
+        <option value="200" selected>200 vehicles</option>
+        <option value="400">400 vehicles</option>
+        <option value="600">600 vehicles</option>
+      </select>
+    </div>
+    <div class="bench-field">
+      <label>Signal Mode</label>
+      <select id="benchMode">
+        <option value="static">Static Timing</option>
+        <option value="adaptive" selected>Adaptive (Smart)</option>
+      </select>
+    </div>
+    <button class="bench-run" id="benchRunBtn" onclick="runBenchmark()">▶ Run Benchmark</button>
+  </div>
+
+  <div id="benchResults" style="display:none;">
+    <!-- Sequential vs Best Parallel -->
+    <div class="results-grid" id="topCards"></div>
+
+    <!-- Speedup bars -->
+    <div class="chart-section">
+      <div class="chart-title">Execution Time Comparison — Sequential vs Parallel (All Thread Counts)</div>
+      <div class="speedup-bars" id="speedupBars"></div>
+    </div>
+
+    <!-- Full comparison table -->
+    <div class="chart-section">
+      <div class="chart-title">Detailed Comparison Table</div>
+      <table class="comp-table" id="compTable">
+        <thead>
+          <tr>
+            <th>Implementation</th>
+            <th>Threads</th>
+            <th>Wall Time (s)</th>
+            <th>Compute Time (ms)</th>
+            <th>Avg Step (ms)</th>
+            <th>Vehicles Passed</th>
+            <th>Avg Wait (s)</th>
+            <th>Speedup</th>
+          </tr>
+        </thead>
+        <tbody id="compTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Signal quality comparison -->
+    <div class="chart-section">
+      <div class="chart-title">Signal Optimization Quality</div>
+      <div id="signalQuality" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div id="benchPlaceholder" style="text-align:center;padding:60px;color:var(--dim);">
+    <div style="font-size:3rem;margin-bottom:12px;">⚡</div>
+    <div style="font-size:1rem;font-weight:600;letter-spacing:2px;margin-bottom:8px;">Ready to Benchmark</div>
+    <div style="font-size:0.8rem;">Configure options above and click Run Benchmark to compare sequential vs parallel performance</div>
+  </div>
+</div>
+
+<!-- ══════════ ABOUT PAGE ══════════ -->
+<div class="page" id="page-about">
+  <h2>About This Project</h2>
+
+  <div class="about-section">
+    <h3>Project Overview</h3>
+    <p>This is a <strong>Parallel Traffic Simulation with Time-Dependent Optimization</strong> system. It demonstrates how parallel computing can dramatically speed up traffic simulation workloads, while adaptive signal control optimizes real-world throughput.</p>
+    <p>The Python backend runs a physics-based vehicle simulation. The frontend provides real-time visualization and performance benchmarking.</p>
+  </div>
+
+  <div class="about-section">
+    <h3>Parallelization Approach</h3>
+    <p>Vehicle state computation is the core parallel workload:</p>
+    <ul>
+      <li>Each vehicle's physics update is independent (no shared mutable state between vehicles)</li>
+      <li>Vehicles are partitioned into equal chunks — one chunk per thread</li>
+      <li>Python's <code>concurrent.futures.ThreadPoolExecutor</code> manages thread pool</li>
+      <li>Benchmark tests 1, 2, 4, and 8 threads to show scaling</li>
+      <li>Heavy math per vehicle (braking curves, IDM model, friction) amplifies parallel benefit</li>
+    </ul>
+  </div>
+
+  <div class="about-section">
+    <h3>Signal Optimization</h3>
+    <p>Three modes are implemented:</p>
+    <ul>
+      <li><strong>Static</strong>: Fixed green time — wastes signal time on empty roads</li>
+      <li><strong>Friend's Method</strong>: Proportional extension — heavy roads get more time but light roads may starve</li>
+      <li><strong>Adaptive (Smart)</strong>: Proportional allocation with guaranteed minimum green (MIN_GREEN = 3s) — no starvation, optimal throughput</li>
+    </ul>
+  </div>
+
+  <div class="about-section">
+    <h3>Tech Stack</h3>
+    <ul>
+      <li>Python 3 — simulation engine, HTTP server (stdlib only)</li>
+      <li><code>concurrent.futures.ThreadPoolExecutor</code> — parallelism</li>
+      <li><code>threading.Lock</code> — thread-safe live state</li>
+      <li>HTML5 Canvas — real-time vehicle rendering</li>
+      <li>Vanilla JS — no framework, pure fetch() polling</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════ LOADING OVERLAY ══════════ -->
+<div id="benchLoading">
+  <div class="loading-box">
+    <h3>Running Benchmark</h3>
+    <p>Sequential + parallel runs in progress...</p>
+    <div class="spinner"></div>
+    <div class="progress-steps">
+      <div class="step-item" id="step0"><div class="step-dot"></div>Sequential run</div>
+      <div class="step-item" id="step1"><div class="step-dot"></div>Parallel 1 thread</div>
+      <div class="step-item" id="step2"><div class="step-dot"></div>Parallel 2 threads</div>
+      <div class="step-item" id="step3"><div class="step-dot"></div>Parallel 4 threads</div>
+      <div class="step-item" id="step4"><div class="step-dot"></div>Parallel 8 threads</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ STATUS BAR ══════════ -->
+<div class="statusbar">
+  <div>SERVER: <span>localhost:8765</span></div>
+  <div>SIM: <span id="sbMode">STOPPED</span></div>
+  <div>SIGNAL: <span id="sbSignal">—</span></div>
+  <div>VEHICLES: <span id="sbVeh">0</span></div>
+  <div id="sbBench"></div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────────────────────────
+// GLOBAL STATE
+// ──────────────────────────────────────────────────────────────────
+const API = 'http://localhost:8765';
+let liveRunning = false;
+let liveMode = 'static';
+let pollTimer = null;
+let lastState = null;
+
+const ROAD_COLORS = ['#00d4ff', '#0099bb', '#ff8c00', '#ffaa44'];
+const ROAD_NAMES = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
+
+// ──────────────────────────────────────────────────────────────────
+// PAGE NAVIGATION
+// ──────────────────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ──────────────────────────────────────────────────────────────────
+// LIVE SIMULATION CONTROLS
+// ──────────────────────────────────────────────────────────────────
+function setLiveMode(m) {
+  liveMode = m;
+  document.querySelectorAll('.msel-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode' + m.charAt(0).toUpperCase() + m.slice(1)).classList.add('active');
+}
+
+async function startSim() {
+  await fetch(`${API}/api/start?mode=${liveMode}`);
+  liveRunning = true;
+  document.getElementById('btnStart').style.display = 'none';
+  document.getElementById('btnStop').style.display = 'block';
+  document.getElementById('sbMode').textContent = liveMode.toUpperCase();
+  pollTimer = setInterval(pollState, 100);
+}
+
+async function stopSim() {
+  await fetch(`${API}/api/stop`);
+  liveRunning = false;
+  document.getElementById('btnStart').style.display = 'block';
+  document.getElementById('btnStop').style.display = 'none';
+  document.getElementById('sbMode').textContent = 'STOPPED';
+  if (pollTimer) clearInterval(pollTimer);
+}
+
+async function resetSim() {
+  await stopSim();
+  await fetch(`${API}/api/reset`);
+  lastState = null;
+  clearCanvas();
+  updateMetrics({passed:0,avg_wait:0,queued:0,active:0,wasted:0});
+  renderRoadCards(null);
+}
+
+async function pollState() {
+  try {
+    const r = await fetch(`${API}/api/state`);
+    const state = await r.json();
+    lastState = state;
+    renderFrame(state);
+    updateMetrics(state);
+    renderRoadCards(state);
+    updateTimerCanvas(state);
+    updateSignalInfo(state);
+    document.getElementById('sbSignal').textContent =
+      (state.signal.pair === 0 ? 'NS' : 'EW') + ':' + state.signal.phase.toUpperCase();
+    document.getElementById('sbVeh').textContent = state.active;
+  } catch(e) {}
+}
+
+// ──────────────────────────────────────────────────────────────────
+// CANVAS RENDERING
+// ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#060810';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function renderFrame(state) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2;
+  const RW = 52;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#060810';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(26,37,64,0.4)';
+  ctx.lineWidth = 1;
+  for (let x=0; x<W; x+=40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y=0; y<H; y+=40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // Roads
+  ctx.fillStyle = '#131c2c';
+  ctx.fillRect(cx-RW/2, 0, RW, H);
+  ctx.fillRect(0, cy-RW/2, W, RW);
+
+  // Lane markings
+  ctx.setLineDash([18,14]);
+  ctx.strokeStyle = 'rgba(255,210,0,0.18)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, cy-28); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx, cy+28); ctx.lineTo(cx, H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(cx-28, cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+28, cy); ctx.lineTo(W, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Road edges
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  [cx-RW/2, cx+RW/2].forEach(x => { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); });
+  [cy-RW/2, cy+RW/2].forEach(y => { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+
+  // Intersection box
+  ctx.fillStyle = '#0a1020';
+  ctx.fillRect(cx-RW/2, cy-RW/2, RW, RW);
+
+  // Stop lines + signal glow
+  const pair = state.signal.pair;
+  const phase = state.signal.phase;
+
+  function sigColor(roadId) {
+    const rPair = roadId <= 1 ? 0 : 1;
+    if (rPair === pair) return phase === 'green' ? '#00ff88' : phase === 'yellow' ? '#ffd700' : '#ff2244';
+    return '#ff2244';
+  }
+
+  const stopLines = [
+    { roadId:0, x1:cx-RW/2, y1:cy-28, x2:cx+RW/2, y2:cy-28 },
+    { roadId:1, x1:cx-RW/2, y1:cy+28, x2:cx+RW/2, y2:cy+28 },
+    { roadId:2, x1:cx+28,   y1:cy-RW/2, x2:cx+28,   y2:cy+RW/2 },
+    { roadId:3, x1:cx-28,   y1:cy-RW/2, x2:cx-28,   y2:cy+RW/2 },
+  ];
+
+  stopLines.forEach(sl => {
+    ctx.strokeStyle = sigColor(sl.roadId);
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(sl.x1, sl.y1); ctx.lineTo(sl.x2, sl.y2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  });
+
+  // Traffic lights
+  drawLights(cx, cy, RW, pair, phase);
+
+  // Vehicles
+  if (state.vehicles) {
+    state.vehicles.forEach(v => drawVeh(v, cx, cy, W, H));
+  }
+
+  // Road labels
+  const labPos = [
+    { roadId:0, x:cx, y:cy - H*0.38 },
+    { roadId:1, x:cx, y:cy + H*0.38 },
+    { roadId:2, x:cx + W*0.40, y:cy },
+    { roadId:3, x:cx - W*0.40, y:cy },
+  ];
+
+  ctx.textAlign = 'center';
+  labPos.forEach(l => {
+    const sc = sigColor(l.roadId);
+    ctx.fillStyle = sc;
+    ctx.globalAlpha = 0.8;
+    ctx.font = 'bold 10px Exo 2';
+    ctx.fillText(ROAD_NAMES[l.roadId], l.x, l.y);
+    ctx.font = '9px Share Tech Mono';
+    ctx.fillStyle = '#4a6080';
+    ctx.globalAlpha = 1;
+    const cnt = state.road_counts ? state.road_counts[l.roadId] : 0;
+    ctx.fillText(cnt + ' veh', l.x, l.y + 13);
+  });
+
+  // Signal timer arc
+  const gt = state.signal.green_times;
+  const curGT = phase === 'green' ? gt[pair] : 2.0;
+  const progress = Math.min(state.signal.timer / curGT, 1);
+  const arcCol = phase === 'green' ? '#00ff88' : phase === 'yellow' ? '#ffd700' : '#ff2244';
+  ctx.strokeStyle = arcCol;
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 22, -Math.PI/2, -Math.PI/2 + progress * 2*Math.PI);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const remaining = Math.ceil(curGT - state.signal.timer);
+  ctx.font = 'bold 10px Share Tech Mono';
+  ctx.fillStyle = arcCol;
+  ctx.textAlign = 'center';
+  ctx.fillText(Math.max(0, remaining) + 's', cx, cy + 4);
+
+  // Update overlay time
+  const mm = String(Math.floor(state.sim_time / 60)).padStart(2,'0');
+  const ss = String(Math.floor(state.sim_time % 60)).padStart(2,'0');
+  document.getElementById('overlayTime').textContent = mm + ':' + ss;
+}
+
+function drawLights(cx, cy, RW, pair, phase) {
+  function sigFor(roadId) {
+    const p = roadId <= 1 ? 0 : 1;
+    if (p === pair) return phase;
+    return 'red';
+  }
+
+  const positions = [
+    { roadId:0, x:cx - RW/2 - 11, y:cy - 52 },
+    { roadId:1, x:cx + RW/2 + 11, y:cy + 52 },
+    { roadId:2, x:cx + 52, y:cy - RW/2 - 11 },
+    { roadId:3, x:cx - 52, y:cy + RW/2 + 11 },
+  ];
+
+  positions.forEach(p => {
+    const sig = sigFor(p.roadId);
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    // Housing
+    ctx.fillStyle = '#151f30';
+    ctx.strokeStyle = '#223046';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') ctx.roundRect(-6, -17, 12, 34, 2);
+    else ctx.rect(-6, -17, 12, 34);
+    ctx.fill(); ctx.stroke();
+
+    // Bulbs
+    [['red', -11], ['yellow', 0], ['green', 11]].forEach(([color, dy]) => {
+      const lit = (color === sig);
+      ctx.beginPath();
+      ctx.arc(0, dy, 3.5, 0, Math.PI*2);
+      if (lit) {
+        const cols = { red:'#ff2244', yellow:'#ffd700', green:'#00ff88' };
+        ctx.fillStyle = cols[color];
+        ctx.shadowColor = cols[color];
+        ctx.shadowBlur = 10;
+      } else {
+        ctx.fillStyle = '#0d1520';
+        ctx.shadowBlur = 0;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    ctx.restore();
+  });
+}
+
+function drawVeh(v, cx, cy, W, H) {
+  // Convert distance to canvas position
+  const dirs = [
+    { cos:0, sin:-1 },  // North: comes from top, moves down
+    { cos:0, sin:1 },   // South: comes from bottom, moves up
+    { cos:1, sin:0 },   // East: comes from right, moves left
+    { cos:-1, sin:0 },  // West: comes from left, moves right
+  ];
+
+  const d = dirs[v.road_id];
+  const dist = v.distance;
+  // Max road length visible = 0.45 * canvas dimension
+  const maxDist = (v.road_id <= 1 ? H : W) * 0.45;
+  const t = Math.min(dist / 600, 1); // normalize
+
+  const px = cx + d.cos * t * maxDist;
+  const py = cy + d.sin * t * maxDist;
+
+  ctx.save();
+  ctx.translate(px, py);
+
+  // Rotate to face direction of travel
+  const angle = Math.atan2(d.sin, d.cos);
+  ctx.rotate(angle);
+
+  const color = ROAD_COLORS[v.road_id];
+  const w = 7, h = 12;
+
+  if (v.waiting) {
+    ctx.shadowColor = '#ff2244';
+    ctx.shadowBlur = 5;
+    ctx.fillStyle = '#ff2244';
+  } else if (v.passed) {
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = color;
+  } else {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = color;
+  }
+
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') ctx.roundRect(-w/2, -h/2, w, h, 2);
+  else ctx.rect(-w/2, -h/2, w, h);
+  ctx.fill();
+
+  // Windshield
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fillRect(-w/2+1, -h/2+2, w-2, h*0.3);
+
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ──────────────────────────────────────────────────────────────────
+// UI UPDATES
+// ──────────────────────────────────────────────────────────────────
+function updateMetrics(state) {
+  document.getElementById('metPassed').textContent = state.passed || 0;
+  document.getElementById('metWait').textContent = (state.avg_wait || 0) + 's';
+  document.getElementById('metQueued').textContent = state.queued || 0;
+  document.getElementById('metActive').textContent = state.active || 0;
+  document.getElementById('metWasted').textContent = (state.wasted || 0) + 's';
+}
+
+function renderRoadCards(state) {
+  const container = document.getElementById('roadCards');
+  const counts = state ? state.road_counts : [0,0,0,0];
+  const pair = state ? state.signal.pair : 0;
+  const phase = state ? state.signal.phase : 'red';
+
+  function sigFor(i) {
+    const p = i <= 1 ? 0 : 1;
+    if (p === pair) return phase;
+    return 'red';
+  }
+
+  container.innerHTML = '';
+  for (let i=0; i<4; i++) {
+    const sig = state ? sigFor(i) : 'red';
+    const cnt = counts[i] || 0;
+    const maxC = 25;
+    const pct = Math.min(cnt / maxC * 100, 100);
+    const level = pct > 75 ? '#ff2244' : pct > 50 ? '#ff8c00' : pct > 25 ? '#ffd700' : '#00ff88';
+    const isGo = sig === 'green';
+
+    container.innerHTML += `
+      <div class="road-card ${isGo ? 'go' : ''}">
+        <div class="rc-head">
+          <div class="rc-name" style="color:${ROAD_COLORS[i]}">${ROAD_NAMES[i]}</div>
+          <div class="sig-badge sig-${sig}">${sig.toUpperCase()}</div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-fill" style="width:${pct}%;background:${level}"></div>
+        </div>
+        <div class="rc-info">
+          <span>${cnt} waiting</span>
+          <span style="color:${level}">${pct > 75 ? 'CONGESTED' : pct > 50 ? 'HEAVY' : pct > 25 ? 'MODERATE' : 'LIGHT'}</span>
+        </div>
+      </div>`;
+  }
+}
+
+function updateTimerCanvas(state) {
+  const tc = document.getElementById('timerCanvas');
+  const tctx = tc.getContext('2d');
+  const W = tc.width, H = tc.height;
+  tctx.clearRect(0,0,W,H);
+  tctx.fillStyle = 'rgba(0,0,0,0.3)';
+  tctx.fillRect(0,0,W,H);
+
+  if (!state) return;
+  const pair = state.signal.pair;
+  const phase = state.signal.phase;
+  const gt = state.signal.green_times;
+
+  // Draw both pairs
+  ['NS', 'EW'].forEach((label, i) => {
+    const x = i === 0 ? W*0.25 : W*0.75;
+    const active = i === pair;
+    const sig = active ? phase : 'red';
+    const col = sig === 'green' ? '#00ff88' : sig === 'yellow' ? '#ffd700' : '#ff2244';
+
+    tctx.beginPath();
+    tctx.arc(x, H/2, 16, 0, Math.PI*2);
+    tctx.fillStyle = 'rgba(0,0,0,0.4)';
+    tctx.fill();
+    tctx.strokeStyle = col;
+    tctx.lineWidth = 2;
+    tctx.stroke();
+
+    if (active) {
+      const curGT = phase === 'green' ? gt[i] : 2.0;
+      const prog = Math.min(state.signal.timer / curGT, 1);
+      tctx.beginPath();
+      tctx.arc(x, H/2, 16, -Math.PI/2, -Math.PI/2 + prog * Math.PI*2);
+      tctx.strokeStyle = col;
+      tctx.lineWidth = 3;
+      tctx.shadowColor = col;
+      tctx.shadowBlur = 8;
+      tctx.stroke();
+      tctx.shadowBlur = 0;
+    }
+
+    tctx.font = '8px Share Tech Mono';
+    tctx.fillStyle = col;
+    tctx.textAlign = 'center';
+    tctx.fillText(label, x, H/2 + 3);
+
+    tctx.font = '7px Share Tech Mono';
+    tctx.fillStyle = '#4a6080';
+    tctx.fillText(gt[i].toFixed(0)+'s', x, H/2 + 15);
+  });
+}
+
+function updateSignalInfo(state) {
+  const si = document.getElementById('signalInfo');
+  const pair = state.signal.pair;
+  const phase = state.signal.phase;
+  const gt = state.signal.green_times;
+
+  si.innerHTML = `
+    <div class="sig-pill" style="border-color:${pair===0&&phase==='green'?'#00ff88':'#ff2244'};color:${pair===0&&phase==='green'?'#00ff88':'#ff2244'}">
+      NS: ${pair===0 ? phase.toUpperCase() : 'RED'} (${gt[0].toFixed(1)}s)
+    </div>
+    <div class="sig-pill" style="border-color:${pair===1&&phase==='green'?'#00ff88':'#ff2244'};color:${pair===1&&phase==='green'?'#00ff88':'#ff2244'}">
+      EW: ${pair===1 ? phase.toUpperCase() : 'RED'} (${gt[1].toFixed(1)}s)
+    </div>`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// BENCHMARK
+// ──────────────────────────────────────────────────────────────────
+let benchPollTimer = null;
+let benchStartTime = null;
+let stepProgress = 0;
+
+async function runBenchmark() {
+  const n = document.getElementById('benchVehicles').value;
+  const mode = document.getElementById('benchMode').value;
+
+  document.getElementById('benchRunBtn').disabled = true;
+  document.getElementById('benchRunBtn').classList.add('loading');
+  document.getElementById('benchRunBtn').textContent = '⏳ Running...';
+  document.getElementById('benchResults').style.display = 'none';
+  document.getElementById('benchPlaceholder').style.display = 'none';
+  document.getElementById('benchLoading').classList.add('visible');
+  document.getElementById('sbBench').innerHTML = 'BENCH: <span style="color:var(--yellow)">RUNNING</span>';
+
+  // Reset steps
+  for (let i=0; i<=4; i++) {
+    const el = document.getElementById('step'+i);
+    if (el) el.className = 'step-item';
+  }
+  stepProgress = 0;
+  benchStartTime = Date.now();
+
+  // Start benchmark
+  await fetch(`${API}/api/benchmark?n=${n}&mode=${mode}`);
+
+  // Poll for result
+  benchPollTimer = setInterval(async () => {
+    try {
+      const r = await fetch(`${API}/api/benchmark_result`);
+      const data = await r.json();
+
+      // Simulate step progress
+      const elapsed = (Date.now() - benchStartTime) / 1000;
+      const estimatedSteps = 5;
+      const newProgress = Math.min(Math.floor(elapsed / 3), estimatedSteps);
+      while (stepProgress < newProgress) {
+        const el = document.getElementById('step'+stepProgress);
+        if (el) el.className = 'step-item done';
+        stepProgress++;
+        if (stepProgress < estimatedSteps) {
+          const next = document.getElementById('step'+stepProgress);
+          if (next) next.className = 'step-item running';
+        }
+      }
+
+      if (data.status === 'done') {
+        clearInterval(benchPollTimer);
+        // Mark all done
+        for (let i=0; i<5; i++) {
+          const el = document.getElementById('step'+i);
+          if (el) el.className = 'step-item done';
+        }
+        setTimeout(() => {
+          document.getElementById('benchLoading').classList.remove('visible');
+          renderBenchResults(data.data);
+          document.getElementById('benchRunBtn').disabled = false;
+          document.getElementById('benchRunBtn').classList.remove('loading');
+          document.getElementById('benchRunBtn').textContent = '▶ Run Benchmark';
+          document.getElementById('sbBench').innerHTML = 'BENCH: <span style="color:var(--green)">DONE</span>';
+        }, 600);
+      }
+    } catch(e) {}
+  }, 500);
+}
+
+function renderBenchResults(data) {
+  document.getElementById('benchResults').style.display = 'block';
+  document.getElementById('benchPlaceholder').style.display = 'none';
+
+  const seq = data.sequential;
+  // Find best parallel
+  let bestPar = null, bestSpeedup = 0;
+  Object.values(data.parallel).forEach(p => {
+    if (p.speedup > bestSpeedup) { bestSpeedup = p.speedup; bestPar = p; }
+  });
+
+  // ── Top cards ──
+  const topCards = document.getElementById('topCards');
+  topCards.innerHTML = `
+    <div class="result-card seq-card">
+      <div class="rc-title">🔵 Sequential <span>1 Thread</span></div>
+      <div class="big-metric orange">${seq.wall_time_s}s</div>
+      <div class="metric-label">Total wall clock time</div>
+      <div class="sub-metrics">
+        <div class="sm-box"><div class="sm-val">${seq.total_compute_ms}ms</div><div class="sm-lab">Compute Time</div></div>
+        <div class="sm-box"><div class="sm-val">${seq.avg_step_ms}ms</div><div class="sm-lab">Avg Step</div></div>
+        <div class="sm-box"><div class="sm-val">${seq.passed}</div><div class="sm-lab">Vehicles Passed</div></div>
+        <div class="sm-box"><div class="sm-val">${seq.avg_wait}s</div><div class="sm-lab">Avg Wait</div></div>
+      </div>
+    </div>
+    <div class="result-card highlight">
+      <div class="rc-title">⚡ Parallel <span>Best (${bestPar.threads} Threads)</span></div>
+      <div class="big-metric green">${bestPar.wall_time_s}s</div>
+      <div class="metric-label">Total wall clock time</div>
+      <div class="sub-metrics">
+        <div class="sm-box"><div class="sm-val">${bestPar.total_compute_ms}ms</div><div class="sm-lab">Compute Time</div></div>
+        <div class="sm-box"><div class="sm-val" style="color:var(--purple)">${bestPar.speedup}x</div><div class="sm-lab">Speedup</div></div>
+        <div class="sm-box"><div class="sm-val">${bestPar.passed}</div><div class="sm-lab">Vehicles Passed</div></div>
+        <div class="sm-box"><div class="sm-val">${bestPar.avg_wait}s</div><div class="sm-lab">Avg Wait</div></div>
+      </div>
+    </div>`;
+
+  // ── Speedup bars ──
+  const maxTime = seq.wall_time_s;
+  const bars = document.getElementById('speedupBars');
+  const allEntries = [
+    { label: 'Sequential', time: seq.wall_time_s, speedup: '1.00x (baseline)', cls: 'sb-fill-seq' },
+    ...Object.values(data.parallel).sort((a,b) => a.threads-b.threads).map(p => ({
+      label: `${p.threads} Thread${p.threads>1?'s':''}`,
+      time: p.wall_time_s,
+      speedup: p.speedup + 'x faster',
+      cls: `sb-fill-${p.threads}t`
+    }))
+  ];
+
+  bars.innerHTML = allEntries.map(e => {
+    const pct = Math.round((e.time / maxTime) * 100);
+    return `<div class="sb-row">
+      <div class="sb-label">${e.label}</div>
+      <div class="sb-track">
+        <div class="sb-fill ${e.cls}" style="width:${pct}%">
+          <span style="font-family:var(--mono);font-size:0.65rem;color:rgba(255,255,255,0.8)">${e.time}s</span>
+        </div>
+      </div>
+      <div class="sb-val">${e.speedup}</div>
+    </div>`;
+  }).join('');
+
+  // ── Comparison table ──
+  const tbody = document.getElementById('compTableBody');
+  const seqRow = `<tr>
+    <td style="color:var(--orange)">Sequential</td>
+    <td>1</td>
+    <td>${seq.wall_time_s}</td>
+    <td>${seq.total_compute_ms}</td>
+    <td>${seq.avg_step_ms}</td>
+    <td>${seq.passed}</td>
+    <td>${seq.avg_wait}</td>
+    <td><span class="badge-speedup bs-base">1.00x baseline</span></td>
+  </tr>`;
+
+  const parRows = Object.values(data.parallel).sort((a,b) => a.threads-b.threads).map(p => {
+    const bsClass = p.speedup >= 2 ? 'bs-good' : 'bs-ok';
+    return `<tr>
+      <td style="color:var(--green)">Parallel</td>
+      <td>${p.threads}</td>
+      <td>${p.wall_time_s}</td>
+      <td>${p.total_compute_ms}</td>
+      <td>${p.avg_step_ms}</td>
+      <td>${p.passed}</td>
+      <td>${p.avg_wait}</td>
+      <td><span class="badge-speedup ${bsClass}">${p.speedup}x</span></td>
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = seqRow + parRows;
+
+  // ── Signal quality ──
+  const sq = document.getElementById('signalQuality');
+  sq.innerHTML = `
+    <div class="sm-box">
+      <div class="sm-val" style="color:var(--accent)">${seq.wasted_green}s</div>
+      <div class="sm-lab">WASTED GREEN (SEQ)</div>
+    </div>
+    <div class="sm-box">
+      <div class="sm-val" style="color:var(--green)">${bestPar.wasted_green}s</div>
+      <div class="sm-lab">WASTED GREEN (PAR)</div>
+    </div>
+    <div class="sm-box">
+      <div class="sm-val" style="color:var(--purple)">${data.num_vehicles}</div>
+      <div class="sm-lab">VEHICLES TESTED</div>
+    </div>`;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────────────
+clearCanvas();
+renderRoadCards(null);
+setInterval(() => {
+  if (!liveRunning) {
+    clearCanvas();
+    const W = canvas.width, H = canvas.height, cx=W/2, cy=H/2, RW=52;
+    ctx.fillStyle = '#060810'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(26,37,64,0.3)'; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.fillStyle='#131c2c';
+    ctx.fillRect(cx-RW/2,0,RW,H); ctx.fillRect(0,cy-RW/2,W,RW);
+    ctx.fillStyle='#0a1020'; ctx.fillRect(cx-RW/2,cy-RW/2,RW,RW);
+    ctx.font='bold 13px Exo 2'; ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,229,255,0.3)';
+    ctx.fillText('Press ▶ START to begin simulation', cx, cy-30);
+    ctx.font='11px Share Tech Mono'; ctx.fillStyle='rgba(0,229,255,0.15)';
+    ctx.fillText('Select mode: Static or Adaptive', cx, cy-12);
+  }
+}, 100);
+</script>
+</body>
+</html>
