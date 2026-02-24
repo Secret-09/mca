@@ -866,7 +866,7 @@ code {
 
 <!-- ══════════ STATUS BAR ══════════ -->
 <div class="statusbar">
-  <div>SERVER: <span>localhost:8765</span></div>
+  <div>SERVER: <span id="serverHost"></span></div>
   <div>SIM: <span id="sbMode">STOPPED</span></div>
   <div>SIGNAL: <span id="sbSignal">—</span></div>
   <div>VEHICLES: <span id="sbVeh">0</span></div>
@@ -877,7 +877,7 @@ code {
 // ──────────────────────────────────────────────────────────────────
 // GLOBAL STATE
 // ──────────────────────────────────────────────────────────────────
-const API = 'http://localhost:8765';
+const API = window.location.origin;
 let liveRunning = false;
 let liveMode = 'static';
 let pollTimer = null;
@@ -885,6 +885,7 @@ let lastState = null;
 
 const ROAD_COLORS = ['#00d4ff', '#0099bb', '#ff8c00', '#ffaa44'];
 const ROAD_NAMES = ['NORTH', 'SOUTH', 'EAST', 'WEST'];
+document.getElementById('serverHost').textContent = window.location.host;
 
 // ──────────────────────────────────────────────────────────────────
 // PAGE NAVIGATION
