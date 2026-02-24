@@ -642,7 +642,7 @@ code {
   <div class="pill pill-green">ADAPTIVE SIGNALS</div>
   <div class="pill pill-orange">PYTHON BACKEND</div>
   <div class="tab-bar">
-    <button class="tab active" onclick="showPage('live')">🚦 Live Simulation</button>
+    <button class="tab active" onclick="showPage('live', this)">🚦 Live Simulation</button>
     <button class="tab" onclick="showPage('bench')">⚡ Benchmark</button>
     <button class="tab" onclick="showPage('about')">📋 About</button>
   </div>
@@ -890,11 +890,11 @@ document.getElementById('serverHost').textContent = window.location.host;
 // ──────────────────────────────────────────────────────────────────
 // PAGE NAVIGATION
 // ──────────────────────────────────────────────────────────────────
-function showPage(id) {
+function showPage(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
-  event.target.classList.add('active');
+  if (el) el.classList.add('active');
 }
 
 // ──────────────────────────────────────────────────────────────────
