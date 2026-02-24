@@ -620,16 +620,19 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     multiprocessing.freeze_support()
 
-    PORT = 8765
+    # IMPORTANT: use dynamic port for cloud
+    PORT = int(os.environ.get("PORT", 8765))
+
     cpu_count = multiprocessing.cpu_count()
     print(f"\n{'='*55}")
     print(f"  Parallel Traffic Simulation Server")
-    print(f"  Open in browser: http://localhost:{PORT}")
+    print(f"  Open in browser on port: {PORT}")
     print(f"  CPUs available: {cpu_count}")
     print(f"  Parallelism: multiprocessing.Pool (bypasses GIL)")
     print(f"{'='*55}\n")
 
-    server = HTTPServer(('', PORT), Handler)
+    server = HTTPServer(("0.0.0.0", PORT), Handler)
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:
